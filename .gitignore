@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+
+# common directory name for out-of-tree CMake builds
+build*
