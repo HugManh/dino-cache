@@ -6,7 +6,7 @@ bool LRU<Key, Value>::get(const Key &key, const Value &value)
     /* Key in map */
     if (keyItersMap.find(key) == keyItersMap.end())
         return false;
-    IteratorsContainer temp = keyIteratorsMap[key];
+    IteratorsContainer temp = keyItersMap[key];
     auto expiryTime = temp.cacheIterator->expiryTime;
 
     /* Expiry time */
@@ -26,9 +26,9 @@ void LRU<Key, Value>::set(const Key &key, const Value &value)
     if (keyItersMap.size() == capacity)
         /* handle a negative capacity */
         return;
-    auto cacheIter = Node(key, value);
-    auto keyIterInTimeBucket = key;
-    keyItersMap[key] = IteratorsContainer(cacheIter, keyIterInTimeBucket);
+    // auto cacheIter = Node(key, value);
+    // auto keyIterInTimeBucket = key;
+    // keyItersMap[key] = IteratorsContainer(cacheIter, keyIterInTimeBucket);
 
     timeBuckets[clock::now()].push_front(key);
 }
