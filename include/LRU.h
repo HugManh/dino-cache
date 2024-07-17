@@ -1,8 +1,18 @@
+#ifndef DINOCACHE_LRU_H
+#define DINOCACHE_LRU_H
+
 #include <chrono>
 #include <mutex>
 #include <list>
+#include <optional>
 #include <map>
 #include <unordered_map>
+
+using _clock = std::chrono::steady_clock;
+using duration = _clock::duration;
+using time_point = _clock::time_point;
+
+const duration TTL = std::chrono::seconds(20);
 
 template <typename Key, typename Value>
 class LRU
@@ -10,44 +20,41 @@ class LRU
 public:
     LRU(size_t _capacity = 3) : capacity(_capacity){};
     ~LRU(){};
-    bool get(const Key &key, const Value &value);
-    void set(const Key &key, const Value &value);
+
+    std::optional<Value> get(const Key &key);
+    void set(const Key &key, const Value &value, const duration &ttl = TTL);
 
 private:
-    using clock = std::chrono::steady_clock;
-    using duration = clock::duration;
-    using time_point = clock::time_point;
-
-    const duration TTL = std::chrono::seconds(20);
-
-    /*Node that holds the key, value and the expiry time of a key, value pair*/
-    struct Node
+    /*Node2 that holds the key, value and the expiry time of a key, value pair*/
+    struct Node2
     {
         Key key;
         Value value;
         time_point expiryTime;
 
-        Node(Key _key, Value _value, time_point _expiryTime = clock::now()) : key(_key), value(_value), expiryTime(_expiryTime){};
+        Node2() = default;
+
+        Node2(Key _key, Value _value, duration ttl = TTL) : key(_key), value(_value), expiryTime(_clock::now() + ttl){};
     };
 
-    struct IteratorsContainer
-    {
-        typename std::list<Node>::iterator cacheIter;
-        typename std::list<Key>::iterator keyIterInTimeBucket;
-    };
+    inline bool isExpired(time_point expiryTime) { return _clock::now() > expiryTime; };
 
-    inline bool isExpired(time_point expiryTime) { return clock::now() > expiryTime; };
+    void _evictExpired();
+    void _updateNode(const Key &key, const Value &value, const duration &ttl = TTL);
+    void _evictLRU();
 
     /* TimeBuckets. <expiryTime, list<keys that expire at expiryTime>  */
-    std::map<time_point, std::list<Key>> timeBuckets;
+    std::multimap<time_point, Key> timeBuckets;
     /* Holds iterator to cache and timeBuckets for each key
-    Could have used pair<list<Node>::iterator, list<Key>::iterator> but
+    Could have used pair<list<Node2>::iterator, list<Key>::iterator> but
     created a struct for better readability
     */
-    std::unordered_map<Key, IteratorsContainer> keyItersMap;
+    std::unordered_map<Key, Node2> keyUMap;
 
     std::mutex _mutex;
-    size_t capacity;
+    size_t capacity; // maximum capacity of cache
 };
 
 #include "LRU.hpp"
+
+#endif
