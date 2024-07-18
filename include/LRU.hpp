@@ -4,8 +4,8 @@
 #include <iostream>
 
 // updates the priority of data in the LRU cache.
-template <typename Key, typename Value>
-void LRU<Key, Value>::_evictExpired()
+template <typename K, typename V>
+void LRU<K, V>::_evictExpired()
 {
     std::cout << "start" << " " << __FUNCTION__ << std::endl;
     while (!timeBuckets.empty() && isExpired(timeBuckets.begin()->first))
@@ -13,68 +13,56 @@ void LRU<Key, Value>::_evictExpired()
         std::cout << "while" << __FUNCTION__ << std::endl;
         std::cout << "while" << timeBuckets.empty() << isExpired(timeBuckets.begin()->first) << __FUNCTION__ << std::endl;
         auto it = timeBuckets.begin();
-        keyUMap.erase(it->second);
+        keyMap.erase(it->second);
         timeBuckets.erase(it);
     }
     std::cout << "end" << " " << __FUNCTION__ << std::endl;
     return;
 }
 
-// updates the priority of data in the LRU cache.
-template <typename Key, typename Value>
-void LRU<Key, Value>::_updateNode(const Key &key, const Value &value, const duration &ttl)
+/// @brief Purge the least-recently-used element in the cache
+/// @tparam K
+/// @tparam V
+template <typename K, typename V>
+void LRU<K, V>::_evictLRU()
 {
-    LRUEntry current_node = keyUMap[key];
-    auto current_expiryTime = current_node.expiryTime;
-    auto current_value = current_node.value;
+    assert(!timeBuckets.empty());
 
-    // Remove the old node in keyUMap & key in timeBuckets
-    keyUMap.erase(key);
-    auto range = timeBuckets.equal_range(current_expiryTime);
+    auto oldest = timeBuckets.begin();
+    keyMap.erase(oldest->second);
+    timeBuckets.erase(oldest);
+    return;
+}
 
-    for (auto it = range.first; it != range.second; ++it)
-    {
-        if (key == it->second)
-        {
-            timeBuckets.erase(it);
-            break;
-        }
-    }
+// updates the priority of data in the LRU cache.
+template <typename K, typename V>
+void LRU<K, V>::_update(const key_t &key, const value_t &value, const duration &ttl)
+{
+    auto it = keyMap.find(key);
+    auto key = it->first;
+    timestamp_to_key_type::iterator it_timestamp = it->second;
 
-    // Push front the new node to keyUMap & timeBuckets
+    // Remove the old node in keyMap & key in timeBuckets
+    keyMap.erase(key);
+
+
+    // Push front the new node to keyMap & timeBuckets
     LRUEntry node = LRUEntry(key, value, ttl);
-    keyUMap[key] = node;
+    keyMap[key] = node;
     timeBuckets.emplace(node.expiryTime, key);
 
     return;
 }
 
-template <typename Key, typename Value>
-void LRU<Key, Value>::_evictLRU()
-{
-    for (auto it = timeBuckets.begin(); it != timeBuckets.end(); ++it)
-    {
-        if (isExpired(it->first))
-        {
-            keyUMap.erase(it->second);
-            timeBuckets.erase(it);
-        }
-        break;
-    }
-
-    return;
-}
-
-template <typename Key, typename Value>
-int LRU<Key, Value>::get(const Key &key, Value &value)
+template <typename K, typename V>
+int LRU<K, V>::get(const K &key, V &value)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    // lazy evict on ttl.
-    _evictExpired();
 
-    /* Key in map */
-    auto it = keyUMap.find(key);
-    if (it == keyUMap.end())
+
+    /* K in map */
+    auto it = keyMap.find(key);
+    if (it == keyMap.end())
         return 0;
     auto expiryTime = it->second.expiryTime;
 
@@ -82,40 +70,35 @@ int LRU<Key, Value>::get(const Key &key, Value &value)
     if (isExpired(expiryTime))
     {
         timeBuckets.erase(expiryTime);
-        keyUMap.erase(it);
+        keyMap.erase(it);
         return 0;
     }
 
     value = it->second.value;
-    // _updateNode(key, value);
+    // _update(key, value);
 
     return 1;
 }
 
-template <typename Key, typename Value>
-int LRU<Key, Value>::put(const Key &key, const Value &value, const duration &ttl)
+template <typename K, typename V>
+int LRU<K, V>::put(const key_t &key, const value_t &value, const duration &ttl)
 {
-    std::cout << "set " << key << " " << value << std::endl;
     std::lock_guard<std::mutex> lock(_mutex);
-    // lazy evict on ttl.
-    _evictExpired();
 
-    if (keyUMap.find(key) != keyUMap.end())
+    if (keyMap.find(key) != keyMap.end())
     {
-        _updateNode(key, value, ttl);
+        _update(key, value, ttl);
+        std::cout << "key exists, put " << key << " " << value << std::endl;
         return 1;
     }
 
-    if (keyUMap.size() >= capacity)
-    {
+    if (keyMap.size() >= capacity)
         _evictLRU(); /* Capacity reached */
-    }
 
-    // Push front the new node to keyUMap & timeBucket
-    LRUEntry node = LRUEntry(key, value, ttl);
-    keyUMap[key] = node;
-    timeBuckets.emplace(node.expiryTime, key);
+    typename timestamp_to_key_type::iterator it = timeBuckets.insert(_clock::now() + TTL, key);
+    keyMap.insert(key, std::make_pair(value, it));
 
+    std::cout << "put " << key << " " << value << std::endl;
     return 1;
 }
 

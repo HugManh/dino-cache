@@ -5,6 +5,7 @@
 #include <mutex>
 #include <list>
 #include <map>
+#include <assert>
 #include <unordered_map>
 
 using _clock = std::chrono::steady_clock;
@@ -13,43 +14,50 @@ using time_point = _clock::time_point;
 
 const duration TTL = std::chrono::seconds(20);
 
-template <typename Key, typename Value>
+template <typename K, typename V>
 class LRU
 {
 public:
-    LRU(size_t _capacity = 3) : capacity(_capacity){};
-    ~LRU(){};
+    typedef K key_t;
+    typedef V value_t;
+    typedef time_point timestamp_t;
 
-    // returns 1 on found/stored, 0 on not found/stored
-    int get(const Key &key, Value &value);
-    int put(const Key &key, const Value &value, const duration &ttl = TTL);
+    typedef std::multimap<timestamp_t, key_t>
+        timestamp_to_key_type;
+    typedef std::unordered_map<
+        key_t,
+        std::pair<value_t, timestamp_to_key_type::iterator>>
+        key_to_value_type;
 
-private:
-    /*LRUEntry that holds the key, value and the expiry time of a key, value pair*/
-    struct LRUEntry
+    LRU(size_t _capacity = 3) : capacity(_capacity)
     {
-        Key key;
-        Value value;
-        time_point expiryTime;
-
-        LRUEntry() = default;
-
-        LRUEntry(Key _key, Value _value, duration ttl = TTL) : key(_key), value(_value), expiryTime(_clock::now() + ttl){};
+        assert(_capacity >= 0);
     };
 
+    ~LRU()
+    {
+        keyUMap.clear();
+        timeBuckets.clear();
+    };
+
+    // returns 1 on found/stored, 0 on not found/stored
+    int get(const key_t &key, value_t &value);
+    int put(const key_t &key, const value_t &value, const duration &ttl = TTL);
+
+private:
     inline bool isExpired(time_point expiryTime) { return _clock::now() > expiryTime; };
 
     void _evictExpired();
-    void _updateNode(const Key &key, const Value &value, const duration &ttl = TTL);
     void _evictLRU();
+    void _update(const key_t &key, const value_t &value, const duration &ttl = TTL);
 
-    /* TimeBuckets. <expiryTime, list<keys that expire at expiryTime>  */
-    std::multimap<time_point, Key> timeBuckets;
+    /* TimeBuckets. <expiryTime, key that expire at expiryTime>  */
+    timestamp_to_key_type timeBuckets;
     /* Holds iterator to cache and timeBuckets for each key
-    Could have used pair<list<LRUEntry>::iterator, list<Key>::iterator> but
+    Could have used pair<list<K>::iterator, list<LRUEntry>::iterator> but
     created a struct for better readability
     */
-    std::unordered_map<Key, LRUEntry> keyUMap;
+    key_to_value_type keyMap;
 
     std::mutex _mutex;
     size_t capacity; // maximum capacity of cache
