@@ -6,17 +6,26 @@
 int main(int argc, char *argv[])
 {
     LRU<std::string, std::string> *lru = new LRU<std::string, std::string>();
-    lru->set("foo", "bar");
-    lru->set("foo", "oke");
-    lru->set("test", "???");
-    lru->set("din", "oke");
-    lru->set("din", "tret");
-    lru->set("din", "trêtrt");
-    std::cout << "---------------" << std::endl;
+    lru->put("foo", "bar");
+    lru->put("foo", "oke");
+    lru->put("test", "???");
+    lru->put("din", "oke");
+    lru->put("din", "tret");
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    lru->put("din", "trêtrt");
     std::this_thread::sleep_for(std::chrono::seconds(18));
-    std::cout << lru->get("foo").value_or("Not found key") << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(22));
     std::cout << "---------------" << std::endl;
-    std::cout << lru->get("foo").value_or("Not found key") << std::endl;
+    std::string _value;
+    if (lru->get("foo", _value))
+    {
+        std::cout << _value << std::endl;
+    }
+    _value.clear();
+    std::this_thread::sleep_for(std::chrono::seconds(4));
+    std::cout << "---------------" << std::endl;
+    if (lru->get("din", _value))
+    {
+        std::cout << _value << std::endl;
+    }
     return 0;
 }

@@ -8,7 +8,6 @@ template <typename Key, typename Value>
 void LRU<Key, Value>::_evictExpired()
 {
     std::cout << "start" << " " << __FUNCTION__ << std::endl;
-    std::multimap<time_point, Key> timeBuckets;
     while (!timeBuckets.empty() && isExpired(timeBuckets.begin()->first))
     {
         std::cout << "while" << __FUNCTION__ << std::endl;
@@ -25,7 +24,7 @@ void LRU<Key, Value>::_evictExpired()
 template <typename Key, typename Value>
 void LRU<Key, Value>::_updateNode(const Key &key, const Value &value, const duration &ttl)
 {
-    Node2 current_node = keyUMap[key];
+    LRUEntry current_node = keyUMap[key];
     auto current_expiryTime = current_node.expiryTime;
     auto current_value = current_node.value;
 
@@ -43,7 +42,7 @@ void LRU<Key, Value>::_updateNode(const Key &key, const Value &value, const dura
     }
 
     // Push front the new node to keyUMap & timeBuckets
-    Node2 node = Node2(key, value, ttl);
+    LRUEntry node = LRUEntry(key, value, ttl);
     keyUMap[key] = node;
     timeBuckets.emplace(node.expiryTime, key);
 
@@ -67,7 +66,7 @@ void LRU<Key, Value>::_evictLRU()
 }
 
 template <typename Key, typename Value>
-std::optional<Value> LRU<Key, Value>::get(const Key &key)
+int LRU<Key, Value>::get(const Key &key, Value &value)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     // lazy evict on ttl.
@@ -76,7 +75,7 @@ std::optional<Value> LRU<Key, Value>::get(const Key &key)
     /* Key in map */
     auto it = keyUMap.find(key);
     if (it == keyUMap.end())
-        return std::nullopt;
+        return 0;
     auto expiryTime = it->second.expiryTime;
 
     /* Expiry time */
@@ -84,17 +83,17 @@ std::optional<Value> LRU<Key, Value>::get(const Key &key)
     {
         timeBuckets.erase(expiryTime);
         keyUMap.erase(it);
-        return std::nullopt;
+        return 0;
     }
 
-    auto value = it->second.value;
-    _updateNode(key, value);
+    value = it->second.value;
+    // _updateNode(key, value);
 
-    return value;
+    return 1;
 }
 
 template <typename Key, typename Value>
-void LRU<Key, Value>::set(const Key &key, const Value &value, const duration &ttl)
+int LRU<Key, Value>::put(const Key &key, const Value &value, const duration &ttl)
 {
     std::cout << "set " << key << " " << value << std::endl;
     std::lock_guard<std::mutex> lock(_mutex);
@@ -104,7 +103,7 @@ void LRU<Key, Value>::set(const Key &key, const Value &value, const duration &tt
     if (keyUMap.find(key) != keyUMap.end())
     {
         _updateNode(key, value, ttl);
-        return;
+        return 1;
     }
 
     if (keyUMap.size() >= capacity)
@@ -113,11 +112,11 @@ void LRU<Key, Value>::set(const Key &key, const Value &value, const duration &tt
     }
 
     // Push front the new node to keyUMap & timeBucket
-    Node2 node = Node2(key, value, ttl);
+    LRUEntry node = LRUEntry(key, value, ttl);
     keyUMap[key] = node;
     timeBuckets.emplace(node.expiryTime, key);
 
-    return;
+    return 1;
 }
 
 #endif
