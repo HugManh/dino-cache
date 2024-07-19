@@ -5,7 +5,7 @@
 #include <mutex>
 #include <list>
 #include <map>
-#include <assert>
+#include <cassert>
 #include <unordered_map>
 
 using _clock = std::chrono::steady_clock;
@@ -20,13 +20,12 @@ class LRU
 public:
     typedef K key_t;
     typedef V value_t;
-    typedef time_point timestamp_t;
 
-    typedef std::multimap<timestamp_t, key_t>
+    typedef std::multimap<time_point, key_t>
         timestamp_to_key_type;
     typedef std::unordered_map<
         key_t,
-        std::pair<value_t, timestamp_to_key_type::iterator>>
+        std::pair<value_t, typename timestamp_to_key_type::iterator>>
         key_to_value_type;
 
     LRU(size_t _capacity = 3) : capacity(_capacity)
@@ -36,7 +35,7 @@ public:
 
     ~LRU()
     {
-        keyUMap.clear();
+        keyMap.clear();
         timeBuckets.clear();
     };
 

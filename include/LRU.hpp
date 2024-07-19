@@ -12,6 +12,7 @@ void LRU<K, V>::_evictExpired()
     {
         std::cout << "while" << __FUNCTION__ << std::endl;
         std::cout << "while" << timeBuckets.empty() << isExpired(timeBuckets.begin()->first) << __FUNCTION__ << std::endl;
+
         auto it = timeBuckets.begin();
         keyMap.erase(it->second);
         timeBuckets.erase(it);
@@ -38,44 +39,44 @@ void LRU<K, V>::_evictLRU()
 template <typename K, typename V>
 void LRU<K, V>::_update(const key_t &key, const value_t &value, const duration &ttl)
 {
-    auto it = keyMap.find(key);
-    auto key = it->first;
-    timestamp_to_key_type::iterator it_timestamp = it->second;
+    auto oldit = keyMap.find(key);
+    if (oldit == keyMap.end())
+        return;
+    key_t oldkey = oldit->first;
+    typename timestamp_to_key_type::iterator it_timestamp = oldit->second.second;
 
     // Remove the old node in keyMap & key in timeBuckets
-    keyMap.erase(key);
+    keyMap.erase(oldkey);
+    timeBuckets.erase(it_timestamp);
 
-
-    // Push front the new node to keyMap & timeBuckets
-    LRUEntry node = LRUEntry(key, value, ttl);
-    keyMap[key] = node;
-    timeBuckets.emplace(node.expiryTime, key);
+    typename timestamp_to_key_type::iterator newit = timeBuckets.insert(std::make_pair(_clock::now() + TTL, key));
+    keyMap.insert(std::make_pair(key, std::make_pair(value, newit)));
 
     return;
 }
 
 template <typename K, typename V>
-int LRU<K, V>::get(const K &key, V &value)
+int LRU<K, V>::get(const key_t &key, value_t &value)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-
 
     /* K in map */
     auto it = keyMap.find(key);
     if (it == keyMap.end())
         return 0;
-    auto expiryTime = it->second.expiryTime;
+    typename timestamp_to_key_type::iterator it_timestamp = it->second.second;
 
     /* Expiry time */
-    if (isExpired(expiryTime))
+    if (isExpired(it_timestamp->first))
     {
-        timeBuckets.erase(expiryTime);
-        keyMap.erase(it);
+        keyMap.erase(key);
+        timeBuckets.erase(it_timestamp);
         return 0;
     }
 
-    value = it->second.value;
-    // _update(key, value);
+    value = it->second.first;
+
+    _update(key, value);
 
     return 1;
 }
@@ -95,8 +96,8 @@ int LRU<K, V>::put(const key_t &key, const value_t &value, const duration &ttl)
     if (keyMap.size() >= capacity)
         _evictLRU(); /* Capacity reached */
 
-    typename timestamp_to_key_type::iterator it = timeBuckets.insert(_clock::now() + TTL, key);
-    keyMap.insert(key, std::make_pair(value, it));
+    typename timestamp_to_key_type::iterator it = timeBuckets.insert(std::make_pair(_clock::now() + TTL, key));
+    keyMap.insert(std::make_pair(key, std::make_pair(value, it)));
 
     std::cout << "put " << key << " " << value << std::endl;
     return 1;
