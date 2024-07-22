@@ -4,17 +4,29 @@ namespace dino
 {
     namespace cache
     {
-        void Cache::_init(Algorithm alg)
+        OptionalString Cache::get(const StringView &key)
         {
-            switch (alg)
-            {
-            case Algorithm::LRU:
-                lru = new LRU<std::string, std::string>(capacity_);
-                break;
-            default:
-                break;
-            }
+            return std::nullopt;
         }
+
+        int Cache::put(const StringView &key, const StringView &value)
+        {
+            return 1;
+        }
+
+        void Cache::build()
+        {
+            // switch (type_cache_)
+            // {
+            // case Algorithm::TYPE_LRU:
+            //     lru_cache_ = new LRUCache<std::string, std::string>(capacity_);
+            //     return;
+
+            // default:
+            //     throw std::runtime_error("Unknown type cache algorithm");
+            // }
+        }
+
     } // namespace cache
 
 } // namespace dino

@@ -1,17 +1,10 @@
-#ifndef DINOCACHE_ALGORITHM_H
-#define DINOCACHE_ALGORITHM_H
+#ifndef DINOCACHE_ALGORITHM_H_
+#define DINOCACHE_ALGORITHM_H_
 
-namespace dino
+enum Algorithm
 {
-    namespace cache
-    {
-        enum Algorithm
-        {
-            LRU = 1,
-        };
+    TYPE_SIMPLE = 1,
+    TYPE_LRU
+};
 
-    } // namespace cache
-
-} // namespace dino
-
-#endif
+#endif // DINOCACHE_ALGORITHM_H_

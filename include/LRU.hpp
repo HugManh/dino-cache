@@ -1,5 +1,5 @@
-#ifndef DINOCACHE_LRU_HPP
-#define DINOCACHE_LRU_HPP
+#ifndef DINOCACHE_LRU_HPP_
+#define DINOCACHE_LRU_HPP_
 
 #include <iostream>
 
@@ -8,8 +8,8 @@ namespace dino
     namespace cache
     {
         // updates the priority of data in the LRU cache.
-        template <typename K, typename V>
-        void LRUCache<K, V>::_evictExpired()
+        template <typename key_type, typename value_type>
+        void LRUCache<key_type, value_type>::_evictExpired()
         {
             std::cout << "start" << " " << __FUNCTION__ << std::endl;
             while (!timeBuckets.empty() && isExpired(timeBuckets.begin()->first))
@@ -26,10 +26,10 @@ namespace dino
         }
 
         /// @brief Purge the least-recently-used element in the cache
-        /// @tparam K
-        /// @tparam V
-        template <typename K, typename V>
-        void LRUCache<K, V>::_evictLRU()
+        /// @tparam key_type
+        /// @tparam value_type
+        template <typename key_type, typename value_type>
+        void LRUCache<key_type, value_type>::_evict()
         {
             assert(!timeBuckets.empty());
 
@@ -40,13 +40,13 @@ namespace dino
         }
 
         // updates the priority of data in the LRU cache.
-        template <typename K, typename V>
-        void LRUCache<K, V>::_update(const key_t &key, const value_t &value, const duration &ttl)
+        template <typename key_type, typename value_type>
+        void LRUCache<key_type, value_type>::_update(const key_type &key, const value_type &value, const duration &ttl)
         {
             auto oldit = keyMap.find(key);
             if (oldit == keyMap.end())
                 return;
-            key_t oldkey = oldit->first;
+            key_type oldkey = oldit->first;
             typename timestamp_to_key_type::iterator it_timestamp = oldit->second.second;
 
             // Remove the old node in keyMap & key in timeBuckets
@@ -59,12 +59,12 @@ namespace dino
             return;
         }
 
-        template <typename K, typename V>
-        int LRUCache<K, V>::get(const key_t &key, value_t &value)
+        template <typename key_type, typename value_type>
+        int LRUCache<key_type, value_type>::get(const key_type &key, value_type &value)
         {
             std::lock_guard<std::mutex> lock(_mutex);
 
-            /* K in map */
+            /* key_type in map */
             auto it = keyMap.find(key);
             if (it == keyMap.end())
                 return 0;
@@ -85,8 +85,8 @@ namespace dino
             return 1;
         }
 
-        template <typename K, typename V>
-        int LRUCache<K, V>::put(const key_t &key, const value_t &value, const duration &ttl)
+        template <typename key_type, typename value_type>
+        int LRUCache<key_type, value_type>::put(const key_type &key, const value_type &value, const duration &ttl)
         {
             std::lock_guard<std::mutex> lock(_mutex);
 
@@ -98,7 +98,7 @@ namespace dino
             }
 
             if (keyMap.size() >= capacity)
-                _evictLRU(); /* Capacity reached */
+                _evict(); /* Capacity reached */
 
             typename timestamp_to_key_type::iterator it = timeBuckets.insert(std::make_pair(_clock::now() + TTL, key));
             keyMap.insert(std::make_pair(key, std::make_pair(value, it)));
@@ -108,4 +108,5 @@ namespace dino
         }
     }
 }
-#endif
+
+#endif // DINOCACHE_LRU_HPP_

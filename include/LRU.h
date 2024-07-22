@@ -1,5 +1,5 @@
-#ifndef DINOCACHE_LRU_H
-#define DINOCACHE_LRU_H
+#ifndef DINOCACHE_LRU_H_
+#define DINOCACHE_LRU_H_
 
 #include <chrono>
 #include <mutex>
@@ -18,18 +18,15 @@ namespace dino
 
         const duration TTL = std::chrono::seconds(20);
 
-        template <typename K, typename V>
+        template <typename key_type, typename value_type>
         class LRUCache
         {
         public:
-            typedef K key_t;
-            typedef V value_t;
-
-            typedef std::multimap<time_point, key_t>
+            typedef std::multimap<time_point, key_type>
                 timestamp_to_key_type;
             typedef std::unordered_map<
-                key_t,
-                std::pair<value_t, typename timestamp_to_key_type::iterator>>
+                key_type,
+                std::pair<value_type, typename timestamp_to_key_type::iterator>>
                 key_to_value_type;
 
             LRUCache(size_t _capacity = 3) : capacity(_capacity)
@@ -44,15 +41,15 @@ namespace dino
             };
 
             // returns 1 on found/stored, 0 on not found/stored
-            int get(const key_t &key, value_t &value);
-            int put(const key_t &key, const value_t &value, const duration &ttl = TTL);
+            int get(const key_type &key, value_type &value);
+            int put(const key_type &key, const value_type &value, const duration &ttl = TTL);
 
         private:
             inline bool isExpired(time_point expiryTime) { return _clock::now() > expiryTime; };
 
             void _evictExpired();
-            void _evictLRU();
-            void _update(const key_t &key, const value_t &value, const duration &ttl = TTL);
+            void _evict();
+            void _update(const key_type &key, const value_type &value, const duration &ttl = TTL);
 
             /* TimeBuckets. <expiryTime, key that expire at expiryTime>  */
             timestamp_to_key_type timeBuckets;
@@ -69,6 +66,6 @@ namespace dino
     }
 }
 
-#include "LRUCache.hpp"
+#include "lru.hpp"
 
-#endif
+#endif // DINOCACHE_LRU_H_
