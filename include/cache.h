@@ -2,7 +2,7 @@
 #define DINOCACHE_CACHE_H_
 
 #include <string>
-#include "LRU.h"
+#include "lru.h"
 #include "algorithm.h"
 #include "utils.h"
 
@@ -13,16 +13,12 @@ namespace dino
         class Cache
         {
         public:
-            Cache(size_t capacity, Algorithm alg = Algorithm::TYPE_LRU) : capacity_(capacity), type_cache_(alg)
-            {
-                if (capacity_ <= 0 && type_cache_ != Algorithm::TYPE_SIMPLE)
-                    throw "Cache size <= 0";
+            Cache(size_t capacity, Algorithm alg = Algorithm::TYPE_LRU);
 
-                build();
-            };
+            void Build();
 
+            int put(const StringView &key, const StringView &value, const duration &ttl = TTL);
             OptionalString get(const StringView &key);
-            int put(const StringView &key, const StringView &value);
 
         private:
             void build();
@@ -30,7 +26,7 @@ namespace dino
             size_t capacity_;
             int type_cache_;
 
-            LRUCache<std::string, std::string> *lru_cache_;
+            LRUCache<StringView, StringView> *lru_cache_;
         };
     } // namespace cache
 } // namespace dino

@@ -4,27 +4,46 @@ namespace dino
 {
     namespace cache
     {
-        OptionalString Cache::get(const StringView &key)
+
+        Cache::Cache(size_t capacity, Algorithm alg) : capacity_(capacity), type_cache_(alg)
         {
-            return std::nullopt;
+            Build();
+        };
+
+        void Cache::Build()
+        {
+            if (capacity_ <= 0 && type_cache_ != Algorithm::TYPE_SIMPLE)
+                throw "Cache size <= 0";
+
+            build();
+            return;
         }
 
-        int Cache::put(const StringView &key, const StringView &value)
+        int Cache::put(const StringView &key, const StringView &value, const duration &ttl)
         {
-            return 1;
+            return lru_cache_->put(key, value, ttl);
+        }
+
+        OptionalString Cache::get(const StringView &key)
+        {
+            StringView value;
+            lru_cache_->get(key, value);
+            if (value.empty())
+                return std::nullopt;
+            return value.data();
         }
 
         void Cache::build()
         {
-            // switch (type_cache_)
-            // {
-            // case Algorithm::TYPE_LRU:
-            //     lru_cache_ = new LRUCache<std::string, std::string>(capacity_);
-            //     return;
+            switch (type_cache_)
+            {
+            case Algorithm::TYPE_LRU:
+                lru_cache_ = new LRUCache<StringView, StringView>(capacity_);
+                return;
 
-            // default:
-            //     throw std::runtime_error("Unknown type cache algorithm");
-            // }
+            default:
+                throw std::runtime_error("Unknown type cache algorithm");
+            }
         }
 
     } // namespace cache
