@@ -3,18 +3,19 @@
 
 #include <chrono>
 #include <mutex>
+#include <cassert>
+#include <vector>
 #include <list>
 #include <map>
-#include <cassert>
 #include <unordered_map>
 
 namespace dino
 {
     namespace cache
     {
-        using _clock = std::chrono::steady_clock;
-        using duration = _clock::duration;
-        using time_point = _clock::time_point;
+        using cclock = std::chrono::steady_clock;
+        using duration = cclock::duration;
+        using time_point = cclock::time_point;
 
         const duration TTL = std::chrono::seconds(20);
 
@@ -40,12 +41,29 @@ namespace dino
                 timeBuckets.clear();
             };
 
-            // returns 1 on found/stored, 0 on not found/stored
+            /// @brief Get list of keys in cache
+            /// @return list of keys
+            std::vector<key_type> keys();
+
+            // /// @brief Get list of keys in cache
+            // /// @return list of keys
+            // std::unordered_map<key_type, value_type> getall();
+
+            /// @brief Get the value at the specified key in the cache
+            /// @param key The key to value
+            /// @param value The value of key
+            /// @return 1 on found, 0 on not found
             int get(const key_type &key, value_type &value);
+
+            /// @brief Put the value at the specified key in the cache
+            /// @param key The key to value
+            /// @param value The value of key
+            /// @param ttl The time to live in seconds (optional)
+            /// @return 1 on stored, 0 on not stored
             int put(const key_type &key, const value_type &value, const duration &ttl = TTL);
 
         private:
-            inline bool isExpired(time_point expiryTime) { return _clock::now() > expiryTime; };
+            inline bool isExpired(time_point expiryTime) { return cclock::now() > expiryTime; };
 
             void _evictExpired();
             void _evict();

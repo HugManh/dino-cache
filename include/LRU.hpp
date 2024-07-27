@@ -53,10 +53,28 @@ namespace dino
             keyMap.erase(oldkey);
             timeBuckets.erase(it_timestamp);
 
-            typename timestamp_to_key_type::iterator newit = timeBuckets.insert(std::make_pair(_clock::now() + TTL, key));
+            typename timestamp_to_key_type::iterator newit = timeBuckets.insert(std::make_pair(cclock::now() + TTL, key));
             keyMap.insert(std::make_pair(key, std::make_pair(value, newit)));
 
             return;
+        }
+
+        // template <typename key_type, typename value_type>
+        // std::unordered_map<key_type, value_type> LRUCache<key_type, value_type>::getall()
+        // {
+
+        // }
+
+        template <typename key_type, typename value_type>
+        std::vector<key_type> LRUCache<key_type, value_type>::keys()
+        {
+            std::vector<key_type> keys(keyMap.size());
+            while (!keyMap.empty() && keyMap.begin() != keyMap.end())
+            {
+                keys.push_back(keyMap.begin()->first);
+                ++keyMap;
+            }
+            return keys;
         }
 
         template <typename key_type, typename value_type>
@@ -100,7 +118,7 @@ namespace dino
             if (keyMap.size() >= capacity)
                 _evict(); /* Capacity reached */
 
-            typename timestamp_to_key_type::iterator it = timeBuckets.insert(std::make_pair(_clock::now() + TTL, key));
+            typename timestamp_to_key_type::iterator it = timeBuckets.insert(std::make_pair(cclock::now() + TTL, key));
             keyMap.insert(std::make_pair(key, std::make_pair(value, it)));
 
             std::cout << "put " << key << " " << value << std::endl;
