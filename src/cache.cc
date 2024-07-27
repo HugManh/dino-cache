@@ -19,9 +19,9 @@ namespace dino
             return;
         }
 
-        int Cache::put(const StringView &key, const StringView &value, const duration &ttl)
+        std::vector<StringView> Cache::keys()
         {
-            return lru_cache_->put(key, value, ttl);
+            return lru_cache_->keys();
         }
 
         OptionalString Cache::get(const StringView &key)
@@ -31,6 +31,11 @@ namespace dino
             if (value.empty())
                 return std::nullopt;
             return value.data();
+        }
+
+        int Cache::put(const StringView &key, const StringView &value, const duration &ttl)
+        {
+            return lru_cache_->put(key, value, ttl);
         }
 
         void Cache::build()

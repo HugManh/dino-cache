@@ -68,11 +68,10 @@ namespace dino
         template <typename key_type, typename value_type>
         std::vector<key_type> LRUCache<key_type, value_type>::keys()
         {
-            std::vector<key_type> keys(keyMap.size());
-            while (!keyMap.empty() && keyMap.begin() != keyMap.end())
+            std::vector<key_type> keys;
+            for (auto it = keyMap.begin(); it != keyMap.end(); ++it)
             {
-                keys.push_back(keyMap.begin()->first);
-                ++keyMap;
+                keys.push_back(it->first);
             }
             return keys;
         }
@@ -99,6 +98,7 @@ namespace dino
             value = it->second.first;
 
             _update(key, value);
+            std::cout << "size " << keyMap.size() << " get " << key << ": " << value << std::endl;
 
             return 1;
         }
@@ -121,7 +121,7 @@ namespace dino
             typename timestamp_to_key_type::iterator it = timeBuckets.insert(std::make_pair(cclock::now() + TTL, key));
             keyMap.insert(std::make_pair(key, std::make_pair(value, it)));
 
-            std::cout << "put " << key << " " << value << std::endl;
+            std::cout << "size " << keyMap.size() << " put " << key << ": " << value << std::endl;
             return 1;
         }
     }

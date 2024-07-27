@@ -17,8 +17,9 @@ namespace dino
 
             void Build();
 
-            int put(const StringView &key, const StringView &value, const duration &ttl = TTL);
+            std::vector<StringView> keys();
             OptionalString get(const StringView &key);
+            int put(const StringView &key, const StringView &value, const duration &ttl = TTL);
 
         private:
             void build();
