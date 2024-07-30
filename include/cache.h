@@ -14,20 +14,26 @@ namespace dino
         {
         public:
             Cache(size_t capacity, Algorithm alg = Algorithm::TYPE_LRU);
+            ~Cache()
+            {
+                if (lru_cache_)
+                    free(lru_cache_);
+            }
 
             void Build();
 
-            std::vector<StringView> keys();
-            OptionalString get(const StringView &key);
-            int put(const StringView &key, const StringView &value, const duration &ttl = TTL);
+            std::vector<std::string> keys();
+            OptionalString get(const std::string &key);
+            int put(const std::string &key, const std::string &value, int ttl);
 
         private:
             void build();
 
+            std::mutex mutex_;
             size_t capacity_;
             int type_cache_;
 
-            LRUCache<StringView, StringView> *lru_cache_;
+            LRUCache<std::string, std::string> *lru_cache_;
         };
     } // namespace cache
 } // namespace dino

@@ -3,11 +3,12 @@
 
 #include <chrono>
 #include <mutex>
-#include <cassert>
 #include <vector>
 #include <list>
+#include <cassert>
 #include <map>
 #include <unordered_map>
+#include <iostream>
 
 namespace dino
 {
@@ -23,31 +24,23 @@ namespace dino
         class LRUCache
         {
         public:
-            typedef std::multimap<time_point, key_type>
-                timestamp_to_key_type;
+            typedef std::multimap<time_point, key_type> timestamp_to_key_type;
             typedef std::unordered_map<
                 key_type,
                 std::pair<value_type, typename timestamp_to_key_type::iterator>>
                 key_to_value_type;
 
-            LRUCache(size_t _capacity = 3) : capacity(_capacity)
-            {
-                assert(_capacity >= 0);
-            };
+            LRUCache(size_t capacity = 3) : capacity_(capacity) { assert(capacity_ >= 0); };
 
             ~LRUCache()
             {
-                keyMap.clear();
-                timeBuckets.clear();
+                keyMap_.clear();
+                timeBuckets_.clear();
             };
 
             /// @brief Get list of keys in cache
             /// @return list of keys
             std::vector<key_type> keys();
-
-            // /// @brief Get list of keys in cache
-            // /// @return list of keys
-            // std::unordered_map<key_type, value_type> getall();
 
             /// @brief Get the value at the specified key in the cache
             /// @param key The key to value
@@ -62,27 +55,34 @@ namespace dino
             /// @return 1 on stored, 0 on not stored
             int put(const key_type &key, const value_type &value, const duration &ttl = TTL);
 
+            // Size of cache
+            size_t
+            size() const
+            {
+                return keyMap_.size();
+            }
+
         private:
             inline bool isExpired(time_point expiryTime) { return cclock::now() > expiryTime; };
 
-            void _evictExpired();
-            void _evict();
-            void _update(const key_type &key, const value_type &value, const duration &ttl = TTL);
+            void evictExpired();
+            void evict();
+            void update(const key_type &key, const value_type &value, const duration &ttl = TTL);
+
+            std::mutex mutex_;
+            size_t capacity_; // maximum capacity of cache
 
             /* TimeBuckets. <expiryTime, key that expire at expiryTime>  */
-            timestamp_to_key_type timeBuckets;
+            timestamp_to_key_type timeBuckets_;
             /* Holds iterator to cache and timeBuckets for each key
             Could have used pair<list<K>::iterator, list<LRUCacheEntry>::iterator> but
             created a struct for better readability
             */
-            key_to_value_type keyMap;
-
-            std::mutex _mutex;
-            size_t capacity; // maximum capacity of cache
+            key_to_value_type keyMap_;
         };
 
-    }
-}
+    } // namespace cache
+} // namespace dino
 
 #include "lru.hpp"
 
